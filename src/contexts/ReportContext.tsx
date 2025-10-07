@@ -114,7 +114,7 @@ const initialReports: Report[] = [
 ];
 
 export const ReportProvider = ({ children }: { children: ReactNode }) => {
-  const powerPayClient = usePowerPayClient({ baseUrl: 'http://localhost:8383' });
+  const powerPayClient = usePowerPayClient({ baseUrl: 'https://stateful-mas-api-2013026601306673.13.azure.databricksapps.com' });
   const [reports, setReports] = useState<Report[]>(initialReports);
   const [currentReport, setCurrentReport] = useState<Report | null>(null);
   const [messageId, setMessageId] = useState<string | null>(null);

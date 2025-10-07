@@ -46,7 +46,7 @@ interface Report {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { startNewChat } = useReports();
-  const powerPayClient = usePowerPayClient({ baseUrl: 'http://localhost:8383' });
+  const powerPayClient = usePowerPayClient({ baseUrl: 'https://stateful-mas-api-2013026601306673.13.azure.databricksapps.com' });
   const { data: powerPayReports, isLoading: loading } = usePowerPayReports(powerPayClient);
   const saveReportMutation = useSaveReport(powerPayClient);
   const [searchQuery, setSearchQuery] = useState("");

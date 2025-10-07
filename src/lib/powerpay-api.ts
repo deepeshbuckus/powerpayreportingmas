@@ -112,9 +112,9 @@ export class PowerPayApi {
 
   // --- Endpoints ---
 
-  /** GET /reports */
+  /** GET /conversations */
   getReports(signal?: AbortSignal) {
-    return this.request<ReportResponse[]>("GET", `/reports`, undefined, signal);
+    return this.request<ReportResponse[]>("GET", `/conversations`, undefined, signal);
   }
 
   /** POST /reports */
