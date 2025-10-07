@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useReports } from "@/contexts/ReportContext";
 import { useNavigate } from "react-router-dom";
+import { usePowerPayClient, useReports as usePowerPayReports, useSaveReport } from "@/hooks/usePowerPay";
+import type { UUID } from "@/lib/powerpay-api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,38 +45,20 @@ interface Report {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { startNewChat } = useReports();
+  const powerPayClient = usePowerPayClient({ baseUrl: 'http://localhost:8383' });
+  const { data: powerPayReports, isLoading: loading } = usePowerPayReports(powerPayClient);
+  const saveReportMutation = useSaveReport(powerPayClient);
   const [searchQuery, setSearchQuery] = useState("");
   const [chatInput, setChatInput] = useState("");
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const response = await fetch('https://localhost:60400/api/reports?onlyMapped=true');
-        const data = await response.json();
-        
-        // Handle both array and object formats
-        let reportsArray: Report[];
-        if (Array.isArray(data)) {
-          reportsArray = data;
-        } else if (typeof data === 'object' && data !== null) {
-          // Convert object with numeric keys to array
-          reportsArray = Object.values(data);
-        } else {
-          reportsArray = [];
-        }
-        
-        setReports(reportsArray);
-      } catch (error) {
-        console.error('Failed to fetch reports:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReports();
-  }, []);
+  // Transform PowerPay reports to Dashboard report format
+  const reports: Report[] = (powerPayReports || []).map(r => ({
+    conversationId: r.reportId || '',
+    defaultTitle: r.description || 'Untitled Report',
+    reportName: r.name || '',
+    createdAt: new Date().toISOString(),
+    mapped: !!r.name
+  }));
 
   const handleChatRedirect = async () => {
     if (!chatInput.trim()) return;
@@ -89,39 +73,23 @@ const Dashboard = () => {
 
   const handleEditReport = async (conversationId: string) => {
     try {
-      let allMessages: any[] = [];
-      let pageToken: string | undefined;
-      
-      do {
-        const url = new URL(`https://localhost:60400/api/reports/${conversationId}/messages`);
-        url.searchParams.set('pageSize', '100');
-        if (pageToken) {
-          url.searchParams.set('pageToken', pageToken);
-        }
-
-        const response = await fetch(url.toString(), {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          allMessages = [...allMessages, ...(data.messages || [])];
-          pageToken = data.next_page_token;
-        } else {
-          console.error('Failed to fetch conversation messages:', response.status);
-          break;
-        }
-      } while (pageToken);
+      const response = await powerPayClient.getConversationMessages(conversationId as UUID);
+      const allMessages = response.messages || [];
 
       // Set the session data and navigate to chat
       if (allMessages.length > 0) {
-        // Store the chat history in localStorage for the chat interface to pick up
-        localStorage.setItem('loadedChatHistory', JSON.stringify(allMessages));
+        // Transform messages to the expected format
+        const transformedMessages = allMessages.map((msg, index) => ({
+          id: msg.messageId || `msg-${index}`,
+          message_id: msg.messageId,
+          content: msg.prompt || msg.response || '',
+          role: msg.prompt ? 'user' : 'assistant',
+          timestamp: new Date().toISOString()
+        }));
+
+        localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
         localStorage.setItem('loadedConversationId', conversationId);
         
-        // Navigate to the chat page
         navigate("/");
       }
     } catch (error) {
@@ -131,36 +99,11 @@ const Dashboard = () => {
 
   const handleUpdateReportName = async (conversationId: string, newName: string) => {
     try {
-      const response = await fetch('https://localhost:60400/api/reports/mappings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          conversationId,
-          reportName: newName,
-          description: "Updated report name",
-          active: true
-        }),
+      await saveReportMutation.mutateAsync({
+        reportId: conversationId as UUID,
+        name: newName,
+        description: "Updated report name"
       });
-
-      if (response.ok) {
-        // Refresh reports after successful update
-        const reportsResponse = await fetch('https://localhost:60400/api/reports?onlyMapped=true');
-        const data = await reportsResponse.json();
-        
-        // Handle both array and object formats
-        let reportsArray: Report[];
-        if (Array.isArray(data)) {
-          reportsArray = data;
-        } else if (typeof data === 'object' && data !== null) {
-          reportsArray = Object.values(data);
-        } else {
-          reportsArray = [];
-        }
-        
-        setReports(reportsArray);
-      }
     } catch (error) {
       console.error('Failed to update report name:', error);
     }

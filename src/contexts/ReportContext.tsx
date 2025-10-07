@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { usePowerPayClient } from '@/hooks/usePowerPay';
+import type { UUID } from '@/lib/powerpay-api';
 
 export interface Report {
   id: string;
@@ -112,6 +114,7 @@ const initialReports: Report[] = [
 ];
 
 export const ReportProvider = ({ children }: { children: ReactNode }) => {
+  const powerPayClient = usePowerPayClient({ baseUrl: 'http://localhost:8383' });
   const [reports, setReports] = useState<Report[]>(initialReports);
   const [currentReport, setCurrentReport] = useState<Report | null>(null);
   const [messageId, setMessageId] = useState<string | null>(null);
@@ -188,35 +191,26 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
   const startNewChat = async (content: string): Promise<{ messageId: string; conversationId: string }> => {
     try {
-      const response = await fetch('https://localhost:60400/api/reports/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const messageId = data.message_id;
-      const conversationId = data.conversation_id;
-      const attachmentId = data.attachment_id;
+      const response = await powerPayClient.startConversation({ prompt: content });
       
-      setMessageId(messageId);
-      setConversationId(conversationId);
-
-      // If there's data in the response, create a report
-      if (data.result?.statement_response?.result?.data_array) {
-        const apiData = transformApiResponse(data.result.statement_response, content);
-        const newReport = createReportFromApiData(content, apiData, attachmentId);
-        addReport(newReport);
-        return { messageId, conversationId };
-      }
+      const reportId = response.reportId || '';
+      const lastMessage = response.messages?.[response.messages.length - 1];
+      const msgId = lastMessage?.messageId || '';
       
-      return { messageId, conversationId };
+      setMessageId(msgId);
+      setConversationId(reportId);
+
+      // Create a basic report from the conversation
+      const newReport: Omit<Report, 'id' | 'createdAt' | 'updatedAt'> = {
+        title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+        description: `Report generated from prompt: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`,
+        content: generateMockReportContent(content, 'General'),
+        status: 'draft',
+        type: 'General',
+      };
+
+      addReport(newReport);
+      return { messageId: msgId, conversationId: reportId };
     } catch (error) {
       console.error('Error starting new chat:', error);
       throw error;
@@ -255,51 +249,27 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('Fetching attachment result:', { conversationId, messageId, attachmentId });
       
-      // First get the original attachment info to preserve the query details
-      const attachmentInfoResponse = await fetch(`https://localhost:60400/api/reports/${conversationId}/messages/${messageId}/attachments/${attachmentId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await powerPayClient.getReportData(conversationId as UUID, messageId as UUID);
+      console.log('Report data response:', response);
       
-      let originalQuery = null;
-      if (attachmentInfoResponse.ok) {
-        const attachmentInfo = await attachmentInfoResponse.json();
-        console.log('Original attachment info:', attachmentInfo);
-        originalQuery = attachmentInfo.query;
-      }
-      
-      const response = await fetch(`https://localhost:60400/api/reports/${conversationId}/messages/${messageId}/attachments/${attachmentId}/result`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.data || response.data.length === 0) {
+        console.log('No data in response');
+        return;
       }
 
-      const data = await response.json();
-      console.log('Attachment result data:', data);
-      
-      // Transform the response into apiData format
-      const transformedData = data.rows.map((row: any[]) => {
+      // Transform 2D array to objects
+      const transformedData = response.data.slice(1).map((row: any[]) => {
         const obj: Record<string, any> = {};
-        data.columns.forEach((col: string, index: number) => {
-          obj[col] = row[index];
+        response.data![0].forEach((header: string, index: number) => {
+          obj[header] = row[index];
         });
         return obj;
       });
 
-      // Use original query info if available, otherwise fall back to generic title
-      const title = originalQuery?.description || `Query Results`;
       const apiData = {
-        title: title,
+        title: 'Query Results',
         type: 'Query Results',
-        data: transformedData,
-        originalQuery: originalQuery
+        data: transformedData
       };
 
       console.log('Transformed API data:', apiData);
@@ -316,13 +286,11 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         updateReport(currentReport.id, { apiData: apiData, content: updatedReport.content });
       } else {
         console.log('No current report found to update, creating new report');
-        console.log('API data received:', apiData);
-        // Create a new report from the attachment data
         const newReport: Report = {
           id: Date.now().toString(),
           title: apiData.title,
           description: 'Report generated from chat history',
-          content: generateContentFromApiData(apiData, 'Top 5 employees by deposit amount'),
+          content: generateContentFromApiData(apiData, 'Data Report'),
           status: 'published',
           type: 'data-report',
           createdAt: new Date(),
@@ -332,7 +300,6 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         console.log('Created new report:', newReport);
         setCurrentReport(newReport);
         addReport(newReport);
-        console.log('Set current report and added to reports list');
       }
     } catch (error) {
       console.error('Error fetching attachment result:', error);
@@ -342,55 +309,25 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
   const sendChatMessage = async (conversationId: string, content: string): Promise<void> => {
     try {
-      const response = await fetch(`https://localhost:60400/api/reports/${conversationId}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await powerPayClient.continueConversation(conversationId as UUID, { prompt: content });
       
-      // Update session data
-      setMessageId(data.messageId);
-      setAttachmentId(data.attachmentId);
+      const lastMessage = response.messages?.[response.messages.length - 1];
+      const newMessageId = lastMessage?.messageId || '';
+      
+      setMessageId(newMessageId);
 
-      // Transform the response data
-      if (data.rows && data.columns) {
-        const transformedData = data.rows.map((row: any[]) => {
-          const obj: Record<string, any> = {};
-          data.columns.forEach((col: string, index: number) => {
-            obj[col] = row[index];
-          });
-          return obj;
-        });
-
-        const apiData = {
-          title: `Query Results: ${content}`,
-          type: 'Query Results',
-          data: transformedData
+      // Update current report with the new conversation
+      if (currentReport) {
+        const updatedReport = {
+          ...currentReport,
+          content: lastMessage?.response || currentReport.content,
+          updatedAt: new Date()
         };
-
-        // Update current report with the new data
-        if (currentReport) {
-          const updatedReport = {
-            ...currentReport,
-            apiData: apiData,
-            content: generateContentFromApiData(apiData, content),
-            updatedAt: new Date()
-          };
-          setCurrentReport(updatedReport);
-          updateReport(currentReport.id, { 
-            apiData: apiData, 
-            content: updatedReport.content,
-            updatedAt: new Date()
-          });
-        }
+        setCurrentReport(updatedReport);
+        updateReport(currentReport.id, { 
+          content: updatedReport.content,
+          updatedAt: new Date()
+        });
       }
     } catch (error) {
       console.error('Error sending chat message:', error);
@@ -400,27 +337,14 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchConversationMessages = async (conversationId: string): Promise<void> => {
     try {
-      const response = await fetch(`https://localhost:60400/api/reports/${conversationId}/messages`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const messages = await response.json();
+      const response = await powerPayClient.getConversationMessages(conversationId as UUID);
       
-      // For each message that has an attachment, fetch the attachment result
+      const messages = response.messages || [];
+      
+      // For each message, we could fetch data if needed
       for (const message of messages) {
-        if (message.attachmentId && message.messageId) {
-          try {
-            await fetchAttachmentResult(conversationId, message.messageId, message.attachmentId);
-          } catch (error) {
-            console.error(`Error fetching attachment result for message ${message.messageId}:`, error);
-          }
+        if (message.messageId) {
+          console.log('Message:', message);
         }
       }
     } catch (error) {
