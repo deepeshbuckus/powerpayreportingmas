@@ -1,10 +1,11 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Share2 } from "lucide-react";
+import { Download, Eye, Share2, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReports } from "@/contexts/ReportContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const renderReportContent = (content: string) => {
   const lines = content.split('\n');
@@ -178,11 +179,12 @@ const exportToCSV = (report: any) => {
 export const ReportPreview = () => {
   const { currentReport } = useReports();
   const { toast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
   
   // Debug logging
   console.log('ReportPreview currentReport:', currentReport);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!currentReport) {
       toast({
         title: "No Report Available",
@@ -192,7 +194,10 @@ export const ReportPreview = () => {
       return;
     }
 
+    setIsExporting(true);
     try {
+      // Simulate export processing
+      await new Promise(resolve => setTimeout(resolve, 500));
       exportToCSV(currentReport);
       toast({
         title: "Export Successful",
@@ -204,6 +209,8 @@ export const ReportPreview = () => {
         description: "There was an error exporting the report.",
         variant: "destructive",
       });
+    } finally {
+      setIsExporting(false);
     }
   };
   return (
@@ -218,9 +225,13 @@ export const ReportPreview = () => {
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
-          <Button size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
+          <Button size="sm" onClick={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 mr-2" />
+            )}
+            {isExporting ? 'Exporting...' : 'Export'}
           </Button>
         </div>
       </div>
@@ -262,10 +273,15 @@ export const ReportPreview = () => {
                       </div>
                       <Button 
                         onClick={handleExport}
+                        disabled={isExporting}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
                       >
-                        <Download className="w-4 h-4" />
-                        Download
+                        {isExporting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                        {isExporting ? 'Downloading...' : 'Download'}
                       </Button>
                     </div>
                   </div>

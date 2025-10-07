@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Lightbulb,
   Send,
-  Clock
+  Clock,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,14 +61,19 @@ const Dashboard = () => {
     mapped: !!r.name
   }));
 
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
   const handleChatRedirect = async () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isStartingChat) return;
     
+    setIsStartingChat(true);
     try {
       await startNewChat(chatInput);
       navigate("/");
     } catch (error) {
       console.error('Failed to start new chat:', error);
+    } finally {
+      setIsStartingChat(false);
     }
   };
 
@@ -190,8 +196,17 @@ const Dashboard = () => {
                   className="border-0 bg-transparent text-base placeholder:text-muted-foreground focus-visible:ring-0 px-0"
                 />
               </div>
-              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleChatRedirect}>
-                <Send className="w-4 h-4" />
+              <Button 
+                size="sm" 
+                className="bg-primary hover:bg-primary/90" 
+                onClick={handleChatRedirect}
+                disabled={isStartingChat || !chatInput.trim()}
+              >
+                {isStartingChat ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </Button>
             </div>
           </Card>
@@ -225,7 +240,24 @@ const Dashboard = () => {
           {/* Reports Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {loading ? (
-              <div className="col-span-full text-center text-muted-foreground">Loading reports...</div>
+              Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="p-6 h-64">
+                  <div className="flex flex-col h-full justify-between animate-pulse">
+                    <div>
+                      <div className="h-6 bg-muted rounded mb-2 w-3/4"></div>
+                      <div className="h-3 bg-muted rounded mb-3 w-1/2"></div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-muted rounded w-full"></div>
+                        <div className="h-3 bg-muted rounded w-5/6"></div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="h-10 bg-muted rounded flex-1"></div>
+                      <div className="h-10 bg-muted rounded flex-1"></div>
+                    </div>
+                  </div>
+                </Card>
+              ))
             ) : (
               filteredReports.slice(0, 6).map((report) => (
                 <Card key={report.conversationId} className="p-6 hover:shadow-lg transition-smooth hover:border-blue-500 hover:border-2 cursor-pointer h-64">
