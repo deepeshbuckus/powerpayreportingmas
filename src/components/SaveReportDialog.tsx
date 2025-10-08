@@ -85,7 +85,7 @@ export function SaveReportDialog({
       });
 
       onOpenChange(false);
-      navigate("/");
+      navigate("/chat");
     } catch (error) {
       console.error('Failed to save report:', error);
       toast({
