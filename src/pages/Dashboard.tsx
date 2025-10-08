@@ -106,12 +106,15 @@ const Dashboard = () => {
       const response = await powerPayClient.getConversationMessages(conversationId as UUID);
       const allMessages = response.messages || [];
 
-      // Transform messages to the expected format
+      // Transform messages to the expected format - preserve ALL fields
       const transformedMessages = allMessages.map((msg, index) => ({
         id: msg.message_id || `msg-${index}`,
         message_id: msg.message_id,
-        content: msg.prompt || msg.response || '',
-        role: msg.prompt ? 'user' : 'assistant',
+        prompt: msg.prompt || '',                    // Keep prompt separate
+        content: msg.prompt || msg.response || '',   // Keep content for display
+        response: msg.response || null,              // Keep response/table data
+        tableData: msg.response || null,             // Keep tableData alias
+        role: msg.role || (msg.prompt ? 'user' : 'assistant'), // Proper role
         timestamp: new Date().toISOString()
       }));
 
