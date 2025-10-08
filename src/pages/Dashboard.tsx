@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useReports } from "@/contexts/ReportContext";
 import { useNavigate } from "react-router-dom";
 import { usePowerPayClient, useReports as usePowerPayReports, useSaveReport } from "@/hooks/usePowerPay";
@@ -8,6 +8,15 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { 
   Search, 
   Plus, 
@@ -57,6 +66,8 @@ const Dashboard = () => {
   const saveReportMutation = useSaveReport(powerPayClient);
   const [searchQuery, setSearchQuery] = useState("");
   const [chatInput, setChatInput] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Transform PowerPay reports to Dashboard report format
   const reports: Report[] = (powerPayReports || []).map(r => ({
@@ -149,6 +160,17 @@ const Dashboard = () => {
     (report.reportName?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
     report.defaultTitle.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReports = filteredReports.slice(startIndex, endIndex);
 
   const featureCards = [
     {
@@ -289,7 +311,7 @@ const Dashboard = () => {
                 </Card>
               ))
             ) : (
-              filteredReports.slice(0, 6).map((report) => (
+              paginatedReports.map((report) => (
                 <Card key={report.conversationId} className="p-6 hover:shadow-lg transition-smooth hover:border-blue-500 hover:border-2 cursor-pointer h-64">
                   <div className="flex flex-col h-full justify-between">
                     <div>
@@ -341,6 +363,57 @@ const Dashboard = () => {
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {!loading && filteredReports.length > itemsPerPage && (
+            <div className="flex justify-center mt-8">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
 
           {filteredReports.length === 0 && (
             <Card className="p-12 text-center">
