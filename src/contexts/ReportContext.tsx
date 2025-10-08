@@ -311,28 +311,64 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await powerPayClient.continueConversation(conversationId as UUID, { prompt: content });
       
-      const lastMessage = response.messages?.[response.messages.length - 1];
-      const newMessageId = lastMessage?.message_id || '';
-      
-      setMessageId(newMessageId);
+      if (!response || !response.messages || response.messages.length === 0) {
+        throw new Error('Invalid response format from API');
+      }
 
-      // Update current report with the new conversation
-      if (currentReport && lastMessage?.response) {
-        // Convert response array to string content
-        const responseContent = typeof lastMessage.response === 'string' 
-          ? lastMessage.response 
-          : JSON.stringify(lastMessage.response);
-        
-        const updatedReport = {
-          ...currentReport,
-          content: responseContent,
-          updatedAt: new Date()
+      console.log('Continue conversation response:', response);
+
+      // Get the latest message (index 0 based on API response)
+      const latestMessage = response.messages[0];
+      
+      if (latestMessage) {
+        // Update message ID and conversation ID
+        const newMessageId = latestMessage.message_id;
+        if (newMessageId) {
+          setMessageId(newMessageId);
+          setSessionData(newMessageId, conversationId);
+        }
+
+        // If the latest message has table data (response array), update the preview
+        if (latestMessage.response && Array.isArray(latestMessage.response)) {
+          const updatedReport = {
+            id: conversationId,
+            title: 'Query Results',
+            description: `Report generated from prompt: "${content}"`,
+            content: '',
+            status: 'published' as const,
+            type: 'data-report',
+            createdAt: currentReport?.createdAt || new Date(),
+            updatedAt: new Date(),
+            apiData: {
+              title: 'Query Results',
+              type: 'Query Results',
+              data: latestMessage.response
+            }
+          };
+          setCurrentReport(updatedReport);
+          
+          if (currentReport?.id) {
+            updateReport(currentReport.id, { 
+              apiData: updatedReport.apiData,
+              updatedAt: new Date()
+            });
+          }
+        }
+
+        // Store the latest message for ChatInterface to pick up
+        const messageForChat = {
+          id: latestMessage.message_id || `msg-${Date.now()}`,
+          message_id: latestMessage.message_id,
+          content: latestMessage.prompt || '',
+          sender: 'assistant',
+          role: 'assistant',
+          prompt: latestMessage.prompt,
+          response: Array.isArray(latestMessage.response) ? latestMessage.response : null,
+          tableData: Array.isArray(latestMessage.response) ? latestMessage.response : null,
+          timestamp: new Date().toISOString()
         };
-        setCurrentReport(updatedReport);
-        updateReport(currentReport.id, { 
-          content: responseContent,
-          updatedAt: new Date()
-        });
+        
+        localStorage.setItem('latestChatMessage', JSON.stringify(messageForChat));
       }
     } catch (error) {
       console.error('Error sending chat message:', error);
