@@ -291,34 +291,7 @@ export const ChatInterface = () => {
                     : "bg-card border"
                 )}
               >
-                {message.tableData && message.sender === 'assistant' ? (
-                  <div className="w-full">
-                    <div className="rounded-md border overflow-hidden">
-                      <div className="overflow-x-auto max-w-full">
-                        <Table className="min-w-full">
-                          <TableHeader>
-                            <TableRow>
-                              {message.tableData[0]?.map((header, idx) => (
-                                <TableHead key={idx} className="whitespace-nowrap text-xs">{header}</TableHead>
-                              ))}
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {message.tableData.slice(1).map((row, rowIdx) => (
-                              <TableRow key={rowIdx}>
-                                {row.map((cell, cellIdx) => (
-                                  <TableCell key={cellIdx} className="whitespace-nowrap text-xs">{cell}</TableCell>
-                                ))}
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm leading-relaxed">{message.content}</p>
-                )}
+                <p className="text-sm leading-relaxed">{message.content}</p>
                 <span className={cn(
                   "text-xs opacity-70 mt-1 block",
                   message.sender === 'user' ? "text-primary-foreground/70" : "text-muted-foreground"
