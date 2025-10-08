@@ -69,14 +69,16 @@ const Dashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  // Transform PowerPay reports to Dashboard report format
-  const reports: Report[] = (powerPayReports || []).map(r => ({
-    conversationId: r.report_id || '',
-    defaultTitle: r.description || 'Untitled Report',
-    reportName: r.name || '',
-    createdAt: new Date().toISOString(),
-    mapped: !!r.name
-  }));
+  // Transform PowerPay reports to Dashboard report format and sort by creation date (newest first)
+  const reports: Report[] = (powerPayReports || [])
+    .map(r => ({
+      conversationId: r.report_id || '',
+      defaultTitle: r.description || 'Untitled Report',
+      reportName: r.name || '',
+      createdAt: (r as any).created_at || new Date().toISOString(),
+      mapped: !!r.name
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
