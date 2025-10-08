@@ -57,7 +57,7 @@ export class PowerPayApi {
     this.baseUrl = (opts.baseUrl ?? "http://localhost:8383").replace(/\/+$/, "");
     this.getToken = opts.getToken;
     this.token = opts.token;
-    this.fetchFn = opts.fetchFn ?? fetch;
+    this.fetchFn = opts.fetchFn ?? fetch.bind(window);
     this.onUnauthorized = opts.onUnauthorized;
   }
 
