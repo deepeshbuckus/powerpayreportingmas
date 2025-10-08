@@ -60,7 +60,7 @@ const Dashboard = () => {
 
   // Transform PowerPay reports to Dashboard report format
   const reports: Report[] = (powerPayReports || []).map(r => ({
-    conversationId: r.reportId || '',
+    conversationId: r.report_id || '',
     defaultTitle: r.description || 'Untitled Report',
     reportName: r.name || '',
     createdAt: new Date().toISOString(),
@@ -84,7 +84,7 @@ const Dashboard = () => {
       
       // Store the prompt and reportId for the dialog
       setCurrentPrompt(chatInput);
-      setCurrentReportId(response.reportId);
+      setCurrentReportId(response.report_id);
       setChatInput(""); // Clear input
       
       // Open the save report dialog
@@ -110,8 +110,8 @@ const Dashboard = () => {
       if (allMessages.length > 0) {
         // Transform messages to the expected format
         const transformedMessages = allMessages.map((msg, index) => ({
-          id: msg.messageId || `msg-${index}`,
-          message_id: msg.messageId,
+          id: msg.message_id || `msg-${index}`,
+          message_id: msg.message_id,
           content: msg.prompt || msg.response || '',
           role: msg.prompt ? 'user' : 'assistant',
           timestamp: new Date().toISOString()

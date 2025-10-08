@@ -198,9 +198,9 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await powerPayClient.startConversation({ prompt: content });
       
-      const reportId = response.reportId || '';
+      const reportId = response.report_id || '';
       const lastMessage = response.messages?.[response.messages.length - 1];
-      const msgId = lastMessage?.messageId || '';
+      const msgId = lastMessage?.message_id || '';
       
       setMessageId(msgId);
       setConversationId(reportId);
@@ -208,8 +208,8 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       // Store the conversation in localStorage so ChatInterface can pick it up
       if (response.messages && response.messages.length > 0) {
         const transformedMessages = response.messages.map((msg, index) => ({
-          id: msg.messageId || `msg-${index}`,
-          message_id: msg.messageId,
+          id: msg.message_id || `msg-${index}`,
+          message_id: msg.message_id,
           content: msg.prompt || (Array.isArray(msg.response) ? msg.response.join(' ') : msg.response) || '',
           role: msg.role || (msg.prompt ? 'user' : 'assistant'),
           timestamp: new Date().toISOString()
@@ -309,7 +309,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       const response = await powerPayClient.continueConversation(conversationId as UUID, { prompt: content });
       
       const lastMessage = response.messages?.[response.messages.length - 1];
-      const newMessageId = lastMessage?.messageId || '';
+      const newMessageId = lastMessage?.message_id || '';
       
       setMessageId(newMessageId);
 
@@ -345,7 +345,7 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       
       // For each message, we could fetch data if needed
       for (const message of messages) {
-        if (message.messageId) {
+        if (message.message_id) {
           console.log('Message:', message);
         }
       }

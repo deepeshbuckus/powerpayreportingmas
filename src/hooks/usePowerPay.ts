@@ -53,8 +53,8 @@ export const useStartConversation = (client: PowerPayApi, reportIdForRefetch?: U
   return useMutation<ConversationResponse, Error, ConversationRequest>({
     mutationFn: (payload) => client.startConversation(payload),
     onSuccess: (data) => {
-      // Optionally refetch messages for returned reportId
-      const id = data.reportId ?? reportIdForRefetch;
+      // Optionally refetch messages for returned report_id
+      const id = data.report_id ?? reportIdForRefetch;
       if (id) {
         qc.invalidateQueries({ queryKey: ["conversation", id, "messages"] });
       }

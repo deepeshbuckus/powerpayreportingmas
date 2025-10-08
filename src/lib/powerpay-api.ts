@@ -10,7 +10,7 @@ export interface SaveReportRequest {
 }
 
 export interface ReportResponse {
-  reportId?: UUID;
+  report_id?: UUID;
   name?: string;
   description?: string;
 }
@@ -20,14 +20,14 @@ export interface ConversationRequest {
 }
 
 export interface ConversationMessage {
-  messageId?: UUID;
+  message_id?: UUID;
   prompt?: string;
   response?: string[][];
   role?: string;
 }
 
 export interface ConversationResponse {
-  reportId?: UUID;
+  report_id?: UUID;
   messages?: ConversationMessage[];
 }
 
