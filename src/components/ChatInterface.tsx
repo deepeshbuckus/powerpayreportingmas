@@ -128,10 +128,10 @@ export const ChatInterface = () => {
         // Transform API messages to our Message format - index 0 should be first message
         const transformedMessages: Message[] = parsedHistory.map((msg: any, index: number) => ({
           id: msg.id || `loaded-${index}`,
-          content: msg.content || msg.message || '',
+          content: msg.prompt || msg.content || msg.message || '',
           sender: (msg.role === 'user' || msg.sender === 'user') ? 'user' : 'assistant',
           timestamp: new Date(msg.timestamp || Date.now()),
-          tableData: msg.tableData || null
+          tableData: msg.response || msg.tableData || null
         }));
         
         setMessages([
