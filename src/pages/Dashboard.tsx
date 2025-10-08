@@ -119,7 +119,7 @@ const Dashboard = () => {
       localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
       localStorage.setItem('loadedConversationId', conversationId);
       
-      navigate("/");
+      navigate("/chat");
     } catch (error) {
       console.error('Failed to load chat history:', error);
       toast({
