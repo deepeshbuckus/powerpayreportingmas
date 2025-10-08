@@ -113,9 +113,14 @@ const initialReports: Report[] = [
 ];
 
 export const ReportProvider = ({ children }: { children: ReactNode }) => {
+  const token = import.meta.env.VITE_POWERPAY_BEARER_TOKEN;
+  const baseUrl = import.meta.env.VITE_POWERPAY_API_URL || 'http://localhost:8383';
+  
+  console.log('PowerPay Config:', { baseUrl, hasToken: !!token, tokenLength: token?.length });
+  
   const powerPayClient = usePowerPayClient({ 
-    baseUrl: import.meta.env.VITE_POWERPAY_API_URL || 'http://localhost:8383',
-    token: import.meta.env.VITE_POWERPAY_BEARER_TOKEN
+    baseUrl,
+    token
   });
   const [reports, setReports] = useState<Report[]>(initialReports);
   const [currentReport, setCurrentReport] = useState<Report | null>(null);

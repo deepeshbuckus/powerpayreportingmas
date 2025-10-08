@@ -18,8 +18,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Header />
           <div className="min-h-screen bg-gradient-subtle">
-            <Header />
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/dashboard" element={<Dashboard />} />
