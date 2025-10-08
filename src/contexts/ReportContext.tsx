@@ -202,6 +202,20 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       setMessageId(msgId);
       setConversationId(reportId);
 
+      // Store the conversation in localStorage so ChatInterface can pick it up
+      if (response.messages && response.messages.length > 0) {
+        const transformedMessages = response.messages.map((msg, index) => ({
+          id: msg.messageId || `msg-${index}`,
+          message_id: msg.messageId,
+          content: msg.prompt || (Array.isArray(msg.response) ? msg.response.join(' ') : msg.response) || '',
+          role: msg.role || (msg.prompt ? 'user' : 'assistant'),
+          timestamp: new Date().toISOString()
+        }));
+        
+        localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
+        localStorage.setItem('loadedConversationId', reportId);
+      }
+
       // Create a basic report from the conversation
       const newReport: Omit<Report, 'id' | 'createdAt' | 'updatedAt'> = {
         title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),

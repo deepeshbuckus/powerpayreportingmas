@@ -72,6 +72,7 @@ const Dashboard = () => {
     setIsStartingChat(true);
     try {
       await startNewChat(chatInput);
+      setChatInput(""); // Clear input after successful chat creation
       navigate("/");
     } catch (error) {
       console.error('Failed to start new chat:', error);
