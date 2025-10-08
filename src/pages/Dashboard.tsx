@@ -33,6 +33,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
+import { SaveReportDialog } from "@/components/SaveReportDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface Report {
   conversationId: string;
@@ -45,6 +47,7 @@ interface Report {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { startNewChat } = useReports();
   const powerPayClient = usePowerPayClient({ 
     baseUrl: import.meta.env.VITE_POWERPAY_API_URL || 'http://localhost:8383',
@@ -65,17 +68,34 @@ const Dashboard = () => {
   }));
 
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [currentReportId, setCurrentReportId] = useState<UUID | null>(null);
+  const [currentPrompt, setCurrentPrompt] = useState("");
 
   const handleChatRedirect = async () => {
     if (!chatInput.trim() || isStartingChat) return;
     
     setIsStartingChat(true);
     try {
-      await startNewChat(chatInput);
-      setChatInput(""); // Clear input after successful chat creation
-      navigate("/");
+      // Call POST /conversations/start
+      const response = await powerPayClient.startConversation({
+        prompt: chatInput
+      });
+      
+      // Store the prompt and reportId for the dialog
+      setCurrentPrompt(chatInput);
+      setCurrentReportId(response.reportId);
+      setChatInput(""); // Clear input
+      
+      // Open the save report dialog
+      setSaveDialogOpen(true);
     } catch (error) {
-      console.error('Failed to start new chat:', error);
+      console.error('Failed to start conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start conversation. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsStartingChat(false);
     }
@@ -329,6 +349,16 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Save Report Dialog */}
+      {currentReportId && (
+        <SaveReportDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          reportId={currentReportId}
+          initialPrompt={currentPrompt}
+        />
+      )}
     </div>
   );
 };
