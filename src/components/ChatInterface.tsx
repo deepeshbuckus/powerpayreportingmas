@@ -127,14 +127,14 @@ export const ChatInterface = () => {
           }
         }
         
-        // Transform API messages to our Message format - index 0 should be first message
+        // Transform API messages to our Message format - use the role field from API
         const transformedMessages: Message[] = parsedHistory.map((msg: any, index: number) => {
-          // Determine if this is a user message by checking if it has a prompt
-          const isUserMessage = msg.prompt && msg.prompt.trim() !== '';
+          // Use the role field directly from the API
+          const isUserMessage = msg.role === 'user';
           
           return {
             id: msg.id || `loaded-${index}`,
-            content: isUserMessage ? msg.prompt : (msg.content || msg.message || 'Response generated'),
+            content: msg.prompt || msg.content || msg.message || 'Response generated',
             sender: isUserMessage ? 'user' : 'assistant',
             timestamp: new Date(msg.timestamp || Date.now()),
             tableData: msg.response || msg.tableData || null
