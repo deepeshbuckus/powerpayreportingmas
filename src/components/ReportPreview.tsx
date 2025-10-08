@@ -94,9 +94,41 @@ const renderTable = (tableLines: string[], key: number) => {
   );
 };
 
-const renderApiDataTable = (apiData: { title: string; type: string; data: Record<string, any>[] }) => {
+const renderApiDataTable = (apiData: { title: string; type: string; data: Record<string, any>[] | string[][] }) => {
   if (!apiData.data || apiData.data.length === 0) return null;
   
+  // Check if data is array of arrays (tabular format from chat)
+  if (Array.isArray(apiData.data[0])) {
+    const tableData = apiData.data as string[][];
+    return (
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {tableData[0]?.map((header, i) => (
+                <TableHead key={i} className="font-semibold">
+                  {header}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tableData.slice(1).map((row, i) => (
+              <TableRow key={i}>
+                {row.map((cell, j) => (
+                  <TableCell key={j} className="text-sm">
+                    {cell}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+  
+  // Original object-based format
   const headers = Object.keys(apiData.data[0]);
   
   return (

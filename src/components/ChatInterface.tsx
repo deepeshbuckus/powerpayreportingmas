@@ -115,8 +115,8 @@ export const ChatInterface = () => {
           }
         }
         
-        // Transform API messages to our Message format - reverse since index 0 is latest
-        const transformedMessages: Message[] = parsedHistory.reverse().map((msg: any, index: number) => ({
+        // Transform API messages to our Message format - index 0 should be first message
+        const transformedMessages: Message[] = parsedHistory.map((msg: any, index: number) => ({
           id: msg.id || `loaded-${index}`,
           content: msg.content || msg.message || '',
           sender: (msg.role === 'user' || msg.sender === 'user') ? 'user' : 'assistant',
@@ -282,25 +282,29 @@ export const ChatInterface = () => {
                 )}
               >
                 {message.tableData && message.sender === 'assistant' ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          {message.tableData[0]?.map((header, idx) => (
-                            <TableHead key={idx}>{header}</TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {message.tableData.slice(1).map((row, rowIdx) => (
-                          <TableRow key={rowIdx}>
-                            {row.map((cell, cellIdx) => (
-                              <TableCell key={cellIdx}>{cell}</TableCell>
+                  <div className="w-full">
+                    <div className="rounded-md border overflow-hidden">
+                      <div className="overflow-x-auto max-w-full">
+                        <Table className="min-w-full">
+                          <TableHeader>
+                            <TableRow>
+                              {message.tableData[0]?.map((header, idx) => (
+                                <TableHead key={idx} className="whitespace-nowrap text-xs">{header}</TableHead>
+                              ))}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {message.tableData.slice(1).map((row, rowIdx) => (
+                              <TableRow key={rowIdx}>
+                                {row.map((cell, cellIdx) => (
+                                  <TableCell key={cellIdx} className="whitespace-nowrap text-xs">{cell}</TableCell>
+                                ))}
+                              </TableRow>
                             ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm leading-relaxed">{message.content}</p>
