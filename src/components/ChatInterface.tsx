@@ -24,7 +24,7 @@ const promptingTips = [
 ];
 
 export const ChatInterface = () => {
-  const { generateReportFromPrompt, currentReport, messageId, conversationId, setMessageId, sendChatMessage, fetchAttachmentResult, setSessionData } = useReports();
+  const { generateReportFromPrompt, currentReport, messageId, conversationId, setMessageId, sendChatMessage, fetchAttachmentResult, setSessionData, setCurrentReport } = useReports();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -50,25 +50,6 @@ export const ChatInterface = () => {
       try {
         const parsedHistory = JSON.parse(loadedChatHistory);
         console.log('Loading chat history:', parsedHistory);
-        console.log('First message details:', parsedHistory[0]);
-        console.log('All message keys:', parsedHistory.map((msg: any, index: number) => ({
-          index,
-          keys: Object.keys(msg),
-          hasAttachment: !!msg.attachment_id || !!msg.attachmentId,
-          messageId: msg.id || msg.message_id,
-          attachmentId: msg.attachment_id || msg.attachmentId,
-          fullMessage: msg
-        })));
-        
-        console.log('Full first message object:', JSON.stringify(parsedHistory[0], null, 2));
-        console.log('All messages with attachment check:', parsedHistory.map((msg: any, index: number) => ({
-          index,
-          message_id: msg.message_id,
-          attachment_id: msg.attachment_id,
-          status: msg.status,
-          content: msg.content,
-          fullKeys: Object.keys(msg)
-        })));
         
         // Save the message ID from index 0 (latest message)
         if (parsedHistory.length > 0) {
@@ -81,6 +62,35 @@ export const ChatInterface = () => {
             
             // Set session data for the loaded conversation
             setSessionData(latestMessageId, loadedConversationId);
+            
+            // Find the assistant message with table data and update currentReport
+            const assistantMessageWithTable = parsedHistory.find((msg: any) => 
+              msg.role === 'assistant' && msg.tableData && Array.isArray(msg.tableData)
+            );
+            
+            if (assistantMessageWithTable && assistantMessageWithTable.tableData) {
+              console.log('Found assistant message with table data:', assistantMessageWithTable.tableData);
+              
+              // Update the current report with the table data
+              const updatedReport = {
+                id: loadedConversationId,
+                title: 'Query Results',
+                description: 'Report generated from chat history',
+                content: '',
+                status: 'published' as const,
+                type: 'data-report',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                apiData: {
+                  title: 'Query Results',
+                  type: 'Query Results',
+                  data: assistantMessageWithTable.tableData
+                }
+              };
+              
+              console.log('Setting current report with table data:', updatedReport);
+              setCurrentReport(updatedReport);
+            }
             
             // Find the latest message with an attachment and fetch its result
             const latestMessageWithAttachment = parsedHistory.find((msg: any) => 
