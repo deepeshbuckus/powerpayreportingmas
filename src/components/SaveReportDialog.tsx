@@ -62,13 +62,28 @@ export function SaveReportDialog({
         description: description.trim()
       });
 
+      // Fetch conversation messages
+      const messagesResponse = await powerPayClient.getConversationMessages(reportId);
+      const allMessages = messagesResponse.messages || [];
+
+      // Transform messages to chat format
+      const transformedMessages = allMessages.map((msg, index) => ({
+        id: msg.message_id || `msg-${index}`,
+        message_id: msg.message_id,
+        content: msg.role === 'user' ? msg.prompt : msg.response,
+        role: msg.role || (msg.prompt ? 'user' : 'assistant'),
+        timestamp: new Date().toISOString()
+      }));
+
+      // Store chat history and conversation ID
+      localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
+      localStorage.setItem('loadedConversationId', reportId);
+
       toast({
         title: "Success",
         description: "Report saved successfully"
       });
 
-      // Store the conversation ID and navigate to chat
-      localStorage.setItem('loadedConversationId', reportId);
       onOpenChange(false);
       navigate("/");
     } catch (error) {
