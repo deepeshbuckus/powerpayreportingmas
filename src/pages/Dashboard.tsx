@@ -130,7 +130,7 @@ const Dashboard = () => {
   const handleUpdateReportName = async (conversationId: string, newName: string) => {
     try {
       await saveReportMutation.mutateAsync({
-        reportId: conversationId as UUID,
+        report_id: conversationId as UUID,
         name: newName,
         description: "Updated report name"
       });

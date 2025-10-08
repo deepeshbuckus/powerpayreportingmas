@@ -57,7 +57,7 @@ export function SaveReportDialog({
     setIsSaving(true);
     try {
       await saveReportMutation.mutateAsync({
-        reportId,
+        report_id: reportId,
         name: name.trim(),
         description: description.trim()
       });

@@ -4,7 +4,7 @@
 export type UUID = string;
 
 export interface SaveReportRequest {
-  reportId?: UUID;
+  report_id?: UUID;
   name?: string;
   description?: string;
 }
