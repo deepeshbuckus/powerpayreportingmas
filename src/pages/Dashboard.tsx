@@ -106,24 +106,27 @@ const Dashboard = () => {
       const response = await powerPayClient.getConversationMessages(conversationId as UUID);
       const allMessages = response.messages || [];
 
-      // Set the session data and navigate to chat
-      if (allMessages.length > 0) {
-        // Transform messages to the expected format
-        const transformedMessages = allMessages.map((msg, index) => ({
-          id: msg.message_id || `msg-${index}`,
-          message_id: msg.message_id,
-          content: msg.prompt || msg.response || '',
-          role: msg.prompt ? 'user' : 'assistant',
-          timestamp: new Date().toISOString()
-        }));
+      // Transform messages to the expected format
+      const transformedMessages = allMessages.map((msg, index) => ({
+        id: msg.message_id || `msg-${index}`,
+        message_id: msg.message_id,
+        content: msg.prompt || msg.response || '',
+        role: msg.prompt ? 'user' : 'assistant',
+        timestamp: new Date().toISOString()
+      }));
 
-        localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
-        localStorage.setItem('loadedConversationId', conversationId);
-        
-        navigate("/");
-      }
+      // Always store data and navigate, even if empty
+      localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
+      localStorage.setItem('loadedConversationId', conversationId);
+      
+      navigate("/");
     } catch (error) {
       console.error('Failed to load chat history:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversation. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
