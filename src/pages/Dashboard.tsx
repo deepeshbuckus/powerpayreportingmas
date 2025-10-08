@@ -350,15 +350,13 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Save Report Dialog */}
-      {currentReportId && (
-        <SaveReportDialog
-          open={saveDialogOpen}
-          onOpenChange={setSaveDialogOpen}
-          reportId={currentReportId}
-          initialPrompt={currentPrompt}
-        />
-      )}
+      {/* Save Report Dialog - Always render to ensure it's in DOM */}
+      <SaveReportDialog
+        open={saveDialogOpen && !!currentReportId}
+        onOpenChange={setSaveDialogOpen}
+        reportId={currentReportId || ''}
+        initialPrompt={currentPrompt}
+      />
     </div>
   );
 };
