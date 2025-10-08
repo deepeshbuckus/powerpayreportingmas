@@ -63,13 +63,14 @@ export const ChatInterface = () => {
             // Set session data for the loaded conversation
             setSessionData(latestMessageId, loadedConversationId);
             
-            // Find the assistant message with table data and update currentReport
-            const assistantMessageWithTable = parsedHistory.find((msg: any) => 
-              msg.role === 'assistant' && msg.tableData && Array.isArray(msg.tableData)
+            // Find the message with response/table data and update currentReport
+            const messageWithData = parsedHistory.find((msg: any) => 
+              (msg.response && Array.isArray(msg.response)) || (msg.tableData && Array.isArray(msg.tableData))
             );
             
-            if (assistantMessageWithTable && assistantMessageWithTable.tableData) {
-              console.log('Found assistant message with table data:', assistantMessageWithTable.tableData);
+            if (messageWithData) {
+              const tableData = messageWithData.response || messageWithData.tableData;
+              console.log('Found message with table data:', tableData);
               
               // Update the current report with the table data
               const updatedReport = {
@@ -84,7 +85,7 @@ export const ChatInterface = () => {
                 apiData: {
                   title: 'Query Results',
                   type: 'Query Results',
-                  data: assistantMessageWithTable.tableData
+                  data: tableData
                 }
               };
               
@@ -126,13 +127,18 @@ export const ChatInterface = () => {
         }
         
         // Transform API messages to our Message format - index 0 should be first message
-        const transformedMessages: Message[] = parsedHistory.map((msg: any, index: number) => ({
-          id: msg.id || `loaded-${index}`,
-          content: msg.prompt || msg.content || msg.message || '',
-          sender: (msg.role === 'user' || msg.sender === 'user') ? 'user' : 'assistant',
-          timestamp: new Date(msg.timestamp || Date.now()),
-          tableData: msg.response || msg.tableData || null
-        }));
+        const transformedMessages: Message[] = parsedHistory.map((msg: any, index: number) => {
+          // Determine if this is a user message by checking if it has a prompt
+          const isUserMessage = msg.prompt && msg.prompt.trim() !== '';
+          
+          return {
+            id: msg.id || `loaded-${index}`,
+            content: isUserMessage ? msg.prompt : (msg.content || msg.message || 'Response generated'),
+            sender: isUserMessage ? 'user' : 'assistant',
+            timestamp: new Date(msg.timestamp || Date.now()),
+            tableData: msg.response || msg.tableData || null
+          };
+        });
         
         setMessages([
           {
