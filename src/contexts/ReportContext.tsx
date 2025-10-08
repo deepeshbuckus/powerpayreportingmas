@@ -210,8 +210,11 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         const transformedMessages = response.messages.map((msg, index) => ({
           id: msg.message_id || `msg-${index}`,
           message_id: msg.message_id,
-          content: msg.prompt || (Array.isArray(msg.response) ? msg.response.join(' ') : msg.response) || '',
+          content: msg.prompt || '',
           role: msg.role || (msg.prompt ? 'user' : 'assistant'),
+          prompt: msg.prompt,
+          response: Array.isArray(msg.response) ? msg.response : null,
+          tableData: Array.isArray(msg.response) ? msg.response : null,
           timestamp: new Date().toISOString()
         }));
         
