@@ -237,20 +237,22 @@ export const ChatInterface = () => {
         
         // Get all messages from localStorage
         const allMessagesStr = localStorage.getItem('loadedChatHistory');
-        const latestMessageStr = localStorage.getItem('latestChatMessage');
         
-        if (allMessagesStr && latestMessageStr) {
+        if (allMessagesStr) {
           const allMessages = JSON.parse(allMessagesStr);
-          const latestMessage = JSON.parse(latestMessageStr);
           
-          // Transform all messages to Message format
-          const transformedMessages: Message[] = allMessages.map((msg: any, index: number) => ({
-            id: msg.id || `loaded-${index}`,
-            content: msg.prompt || msg.content || '',
-            sender: (msg.role === 'user' || msg.sender === 'user') ? 'user' : 'assistant',
-            timestamp: new Date(msg.timestamp || Date.now()),
-            tableData: msg.response || msg.tableData || null
-          }));
+          // Transform all messages to Message format using the role field
+          const transformedMessages: Message[] = allMessages.map((msg: any, index: number) => {
+            const isUserMessage = msg.role === 'user';
+            
+            return {
+              id: msg.id || `loaded-${index}`,
+              content: msg.prompt || msg.content || msg.message || 'Response generated',
+              sender: isUserMessage ? 'user' : 'assistant',
+              timestamp: new Date(msg.timestamp || Date.now()),
+              tableData: msg.response || msg.tableData || null
+            };
+          });
           
           // Update messages to show full history
           setMessages([
@@ -262,11 +264,6 @@ export const ChatInterface = () => {
             },
             ...transformedMessages
           ]);
-          
-          // Clear localStorage items
-          localStorage.removeItem('latestChatMessage');
-          localStorage.removeItem('loadedChatHistory');
-          localStorage.removeItem('loadedConversationId');
         }
         
         report = currentReport; // Use the updated current report
