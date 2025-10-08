@@ -321,7 +321,11 @@ const Dashboard = () => {
                         <Edit className="w-4 h-4 mr-2" />
                         {report.reportName ? 'Edit report' : 'Set name'}
                       </Button>
-                      <Button size="default" className="bg-primary hover:bg-primary/90 flex-1">
+                      <Button 
+                        size="default" 
+                        className="bg-primary hover:bg-primary/90 flex-1"
+                        onClick={() => handleEditReport(report.conversationId)}
+                      >
                         <Eye className="w-4 h-4 mr-2" />
                         Run report
                       </Button>
