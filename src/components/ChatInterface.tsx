@@ -228,26 +228,38 @@ export const ChatInterface = () => {
       if (conversationId && messageId) {
         await sendChatMessage(conversationId, userPrompt);
         
-        // Get the latest message from localStorage
+        // Get all messages from localStorage
+        const allMessagesStr = localStorage.getItem('loadedChatHistory');
         const latestMessageStr = localStorage.getItem('latestChatMessage');
-        if (latestMessageStr) {
+        
+        if (allMessagesStr && latestMessageStr) {
+          const allMessages = JSON.parse(allMessagesStr);
           const latestMessage = JSON.parse(latestMessageStr);
           
-          // Update the thinking message with the assistant's prompt response
-          const aiResponse: Message = {
-            id: thinkingMessage.id,
-            content: latestMessage.prompt || latestMessage.content || "I've updated your report with new data.",
-            sender: 'assistant',
-            timestamp: new Date(),
-            tableData: latestMessage.tableData || latestMessage.response
-          };
+          // Transform all messages to Message format
+          const transformedMessages: Message[] = allMessages.map((msg: any, index: number) => ({
+            id: msg.id || `loaded-${index}`,
+            content: msg.prompt || msg.content || '',
+            sender: (msg.role === 'user' || msg.sender === 'user') ? 'user' : 'assistant',
+            timestamp: new Date(msg.timestamp || Date.now()),
+            tableData: msg.response || msg.tableData || null
+          }));
           
-          setMessages(prev => prev.map(msg => 
-            msg.id === thinkingMessage.id ? aiResponse : msg
-          ));
+          // Update messages to show full history
+          setMessages([
+            {
+              id: '1',
+              content: "Hello! I'm your AI HR report assistant. Tell me what kind of payroll or HR report you'd like to create - such as payroll summaries, benefits analysis, time tracking, or workforce demographics.",
+              sender: 'assistant',
+              timestamp: new Date()
+            },
+            ...transformedMessages
+          ]);
           
-          // Clear the localStorage
+          // Clear localStorage items
           localStorage.removeItem('latestChatMessage');
+          localStorage.removeItem('loadedChatHistory');
+          localStorage.removeItem('loadedConversationId');
         }
         
         report = currentReport; // Use the updated current report

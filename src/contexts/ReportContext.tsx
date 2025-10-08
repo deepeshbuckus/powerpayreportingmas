@@ -317,8 +317,27 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('Continue conversation response:', response);
 
+      // Get all messages from the API
+      const allMessages = response.messages;
+      
+      // Update chat history with all messages in localStorage
+      const transformedMessages = allMessages.map((msg, index) => ({
+        id: msg.message_id || `msg-${index}`,
+        message_id: msg.message_id,
+        content: msg.prompt || '',
+        role: msg.role || 'assistant',
+        prompt: msg.prompt,
+        response: Array.isArray(msg.response) ? msg.response : null,
+        tableData: Array.isArray(msg.response) ? msg.response : null,
+        timestamp: new Date().toISOString()
+      }));
+      
+      // Store all messages in localStorage (overwrite history)
+      localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
+      localStorage.setItem('loadedConversationId', conversationId);
+      
       // Get the latest message (index 0 based on API response)
-      const latestMessage = response.messages[0];
+      const latestMessage = allMessages[0];
       
       if (latestMessage) {
         // Update message ID and conversation ID
