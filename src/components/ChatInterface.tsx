@@ -241,29 +241,24 @@ export const ChatInterface = () => {
         if (allMessagesStr) {
           const allMessages = JSON.parse(allMessagesStr);
           
-          // Transform all messages to Message format using the role field
-          const transformedMessages: Message[] = allMessages.map((msg: any, index: number) => {
-            const isUserMessage = msg.role === 'user';
-            
-            return {
-              id: msg.id || `loaded-${index}`,
-              content: msg.prompt || msg.content || msg.message || 'Response generated',
-              sender: isUserMessage ? 'user' : 'assistant',
-              timestamp: new Date(msg.timestamp || Date.now()),
-              tableData: msg.response || msg.tableData || null
-            };
-          });
+          // Find the latest assistant message (should be the last one or first based on API)
+          const latestAssistantMsg = allMessages.find((msg: any) => msg.role === 'assistant' && (msg.response || msg.content));
           
-          // Update messages to show full history
-          setMessages([
-            {
-              id: '1',
-              content: "Hello! I'm your AI HR report assistant. Tell me what kind of payroll or HR report you'd like to create - such as payroll summaries, benefits analysis, time tracking, or workforce demographics.",
+          if (latestAssistantMsg) {
+            // Create the assistant response message
+            const assistantResponse: Message = {
+              id: latestAssistantMsg.message_id || thinkingMessage.id,
+              content: latestAssistantMsg.prompt || latestAssistantMsg.content || 'Here are your results:',
               sender: 'assistant',
-              timestamp: new Date()
-            },
-            ...transformedMessages
-          ]);
+              timestamp: new Date(),
+              tableData: latestAssistantMsg.response || latestAssistantMsg.tableData || null
+            };
+            
+            // Replace the thinking message with the actual response
+            setMessages(prev => prev.map(msg => 
+              msg.id === thinkingMessage.id ? assistantResponse : msg
+            ));
+          }
         }
         
         report = currentReport; // Use the updated current report
