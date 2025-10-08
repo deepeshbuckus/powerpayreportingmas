@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Send, Bot, User, Loader2, Lightbulb } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useReports } from "@/contexts/ReportContext";
 
@@ -12,6 +13,7 @@ interface Message {
   content: string;
   sender: 'user' | 'assistant';
   timestamp: Date;
+  tableData?: string[][] | null;
 }
 
 const promptingTips = [
@@ -118,7 +120,8 @@ export const ChatInterface = () => {
           id: msg.id || `loaded-${index}`,
           content: msg.content || msg.message || '',
           sender: (msg.role === 'user' || msg.sender === 'user') ? 'user' : 'assistant',
-          timestamp: new Date(msg.timestamp || Date.now())
+          timestamp: new Date(msg.timestamp || Date.now()),
+          tableData: msg.tableData || null
         }));
         
         setMessages([
@@ -278,7 +281,30 @@ export const ChatInterface = () => {
                     : "bg-card border"
                 )}
               >
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                {message.tableData && message.sender === 'assistant' ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {message.tableData[0]?.map((header, idx) => (
+                            <TableHead key={idx}>{header}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {message.tableData.slice(1).map((row, rowIdx) => (
+                          <TableRow key={rowIdx}>
+                            {row.map((cell, cellIdx) => (
+                              <TableCell key={cellIdx}>{cell}</TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                )}
                 <span className={cn(
                   "text-xs opacity-70 mt-1 block",
                   message.sender === 'user' ? "text-primary-foreground/70" : "text-muted-foreground"

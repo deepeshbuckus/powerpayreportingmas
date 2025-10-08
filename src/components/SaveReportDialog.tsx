@@ -70,8 +70,9 @@ export function SaveReportDialog({
       const transformedMessages = allMessages.map((msg, index) => ({
         id: msg.message_id || `msg-${index}`,
         message_id: msg.message_id,
-        content: msg.role === 'user' ? msg.prompt : msg.response,
-        role: msg.role || (msg.prompt ? 'user' : 'assistant'),
+        content: msg.role === 'user' ? msg.prompt : JSON.stringify(msg.response),
+        role: msg.role,
+        tableData: msg.role === 'assistant' && Array.isArray(msg.response) ? msg.response : null,
         timestamp: new Date().toISOString()
       }));
 
