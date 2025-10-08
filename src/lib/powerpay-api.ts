@@ -22,7 +22,8 @@ export interface ConversationRequest {
 export interface ConversationMessage {
   messageId?: UUID;
   prompt?: string;
-  response?: string;
+  response?: string[][];
+  role?: string;
 }
 
 export interface ConversationResponse {
@@ -31,7 +32,7 @@ export interface ConversationResponse {
 }
 
 export interface ReportDataResponse {
-  data?: any[][];
+  data?: string[][];
 }
 
 export type GetToken = () => string | Promise<string | null> | null;
@@ -39,6 +40,7 @@ export type GetToken = () => string | Promise<string | null> | null;
 export interface PowerPayApiOptions {
   baseUrl?: string;             // default: http://localhost:8383
   getToken?: GetToken;          // async or sync; returns JWT (without "Bearer ")
+  token?: string;               // optional hardcoded token (takes priority over getToken)
   fetchFn?: typeof fetch;       // for SSR/testing
   onUnauthorized?: () => void;  // optional hook when a 401 occurs
 }
@@ -47,17 +49,23 @@ export interface PowerPayApiOptions {
 export class PowerPayApi {
   private baseUrl: string;
   private getToken?: GetToken;
+  private token?: string;
   private fetchFn: typeof fetch;
   private onUnauthorized?: () => void;
 
   constructor(opts: PowerPayApiOptions = {}) {
     this.baseUrl = (opts.baseUrl ?? "http://localhost:8383").replace(/\/+$/, "");
     this.getToken = opts.getToken;
+    this.token = opts.token;
     this.fetchFn = opts.fetchFn ?? fetch;
     this.onUnauthorized = opts.onUnauthorized;
   }
 
   private async authHeader(): Promise<Record<string, string>> {
+    // Prioritize hardcoded token if provided
+    if (this.token) {
+      return { Authorization: `Bearer ${this.token}` };
+    }
     if (!this.getToken) return {};
     const token = await this.getToken();
     if (!token) return {};
@@ -112,9 +120,9 @@ export class PowerPayApi {
 
   // --- Endpoints ---
 
-  /** GET /conversations */
+  /** GET /reports */
   getReports(signal?: AbortSignal) {
-    return this.request<ReportResponse[]>("GET", `/conversations`, undefined, signal);
+    return this.request<ReportResponse[]>("GET", `/reports`, undefined, signal);
   }
 
   /** POST /reports */

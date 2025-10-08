@@ -32,7 +32,6 @@ interface ReportContextType {
   startNewChat: (content: string) => Promise<{ messageId: string; conversationId: string }>;
   setSessionData: (messageId: string, conversationId: string) => void;
   setMessageId: (messageId: string) => void;
-  fetchLatestAttachment: (conversationId: string) => Promise<void>;
   setAttachmentId: (attachmentId: string) => void;
   fetchAttachmentResult: (conversationId: string, messageId: string, attachmentId: string) => Promise<void>;
   sendChatMessage: (conversationId: string, content: string) => Promise<void>;
@@ -114,7 +113,10 @@ const initialReports: Report[] = [
 ];
 
 export const ReportProvider = ({ children }: { children: ReactNode }) => {
-  const powerPayClient = usePowerPayClient({ baseUrl: 'https://stateful-mas-api-2013026601306673.13.azure.databricksapps.com' });
+  const powerPayClient = usePowerPayClient({ 
+    baseUrl: import.meta.env.VITE_POWERPAY_API_URL || 'http://localhost:8383',
+    token: import.meta.env.VITE_POWERPAY_BEARER_TOKEN
+  });
   const [reports, setReports] = useState<Report[]>(initialReports);
   const [currentReport, setCurrentReport] = useState<Report | null>(null);
   const [messageId, setMessageId] = useState<string | null>(null);
@@ -222,28 +224,6 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
     setConversationId(conversationId);
   };
 
-  const fetchLatestAttachment = async (conversationId: string): Promise<void> => {
-    try {
-      const response = await fetch(`https://localhost:60400/api/reports/${conversationId}/latest-attachment`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.attachmentId) {
-        setAttachmentId(data.attachmentId);
-      }
-    } catch (error) {
-      console.error('Error fetching latest attachment:', error);
-      throw error;
-    }
-  };
 
   const fetchAttachmentResult = async (conversationId: string, messageId: string, attachmentId: string): Promise<void> => {
     try {
@@ -317,15 +297,20 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       setMessageId(newMessageId);
 
       // Update current report with the new conversation
-      if (currentReport) {
+      if (currentReport && lastMessage?.response) {
+        // Convert response array to string content
+        const responseContent = typeof lastMessage.response === 'string' 
+          ? lastMessage.response 
+          : JSON.stringify(lastMessage.response);
+        
         const updatedReport = {
           ...currentReport,
-          content: lastMessage?.response || currentReport.content,
+          content: responseContent,
           updatedAt: new Date()
         };
         setCurrentReport(updatedReport);
         updateReport(currentReport.id, { 
-          content: updatedReport.content,
+          content: responseContent,
           updatedAt: new Date()
         });
       }
@@ -367,7 +352,6 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       startNewChat,
       setSessionData,
       setMessageId,
-      fetchLatestAttachment,
       setAttachmentId,
       fetchAttachmentResult,
       sendChatMessage,
