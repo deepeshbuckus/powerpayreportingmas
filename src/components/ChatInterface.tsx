@@ -63,14 +63,15 @@ export const ChatInterface = () => {
             // Set session data for the loaded conversation
             setSessionData(latestMessageId, loadedConversationId);
             
-            // Find the message with response/table data and update currentReport
-            const messageWithData = parsedHistory.find((msg: any) => 
+            // Find the LAST message with response/table data and update currentReport
+            const messagesWithData = parsedHistory.filter((msg: any) => 
               (msg.response && Array.isArray(msg.response)) || (msg.tableData && Array.isArray(msg.tableData))
             );
+            const messageWithData = messagesWithData.length > 0 ? messagesWithData[messagesWithData.length - 1] : null;
             
             if (messageWithData) {
               const tableData = messageWithData.response || messageWithData.tableData;
-              console.log('Found message with table data:', tableData);
+              console.log('Found LAST message with table data:', tableData);
               
               // Update the current report with the table data
               const updatedReport = {
@@ -89,7 +90,7 @@ export const ChatInterface = () => {
                 }
               };
               
-              console.log('Setting current report with table data:', updatedReport);
+              console.log('Setting current report with table data from LAST message:', updatedReport);
               setCurrentReport(updatedReport);
             }
             
