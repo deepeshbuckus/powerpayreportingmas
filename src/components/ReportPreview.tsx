@@ -1,12 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Share2, Loader2, Lightbulb, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { Download, Eye, Share2, Loader2, Lightbulb, Info, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReports } from "@/contexts/ReportContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 const renderReportContent = (content: string) => {
   const lines = content.split('\n');
@@ -292,35 +293,37 @@ export const ReportPreview = () => {
               {/* Report Content */}
               {currentReport.apiData ? (
                 <div className="space-y-6">
-                  {/* Summary Section */}
+                  {/* Summary Section - Enhanced */}
                   {currentReport.summary && (
-                    <Card className="p-4 bg-blue-50/50 border-blue-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Info className="w-4 h-4 text-blue-600" />
+                    <Card className="p-6 bg-gradient-to-br from-primary/5 via-primary/3 to-background border-primary/20 shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Info className="w-5 h-5 text-primary" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-blue-900 mb-2">Summary</h3>
-                          <p className="text-sm text-blue-800 leading-relaxed">{currentReport.summary}</p>
+                          <h3 className="text-lg font-semibold text-foreground mb-2">Summary</h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{currentReport.summary}</p>
                         </div>
                       </div>
                     </Card>
                   )}
 
-                  {/* Key Insights Section */}
+                  {/* Key Insights Section - Enhanced */}
                   {currentReport.keyInsights && currentReport.keyInsights.length > 0 && (
-                    <Card className="p-4 bg-amber-50/50 border-amber-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Lightbulb className="w-4 h-4 text-amber-600" />
+                    <Card className="p-6 bg-gradient-to-br from-amber-50 via-amber-50/50 to-background border-amber-200 shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Lightbulb className="w-5 h-5 text-amber-600" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-amber-900 mb-3">Key Insights</h3>
-                          <ul className="space-y-2">
+                          <h3 className="text-lg font-semibold text-amber-900 mb-3">Key Insights</h3>
+                          <ul className="space-y-2.5">
                             {currentReport.keyInsights.map((insight, idx) => (
-                              <li key={idx} className="flex items-start gap-2 text-sm text-amber-800">
-                                <span className="w-1.5 h-1.5 bg-amber-600 rounded-full mt-1.5 flex-shrink-0"></span>
-                                <span>{insight}</span>
+                              <li key={idx} className="flex items-start gap-3 text-sm text-amber-800">
+                                <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <span className="text-xs font-semibold text-amber-700">{idx + 1}</span>
+                                </div>
+                                <span className="leading-relaxed">{insight}</span>
                               </li>
                             ))}
                           </ul>
@@ -329,25 +332,54 @@ export const ReportPreview = () => {
                     </Card>
                   )}
 
+                  {/* Suggested Prompts Section - New */}
+                  {currentReport.suggestedPrompts && currentReport.suggestedPrompts.length > 0 && (
+                    <Card className="p-6 bg-gradient-to-br from-violet-50 via-violet-50/50 to-background border-violet-200 shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Sparkles className="w-5 h-5 text-violet-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-violet-900 mb-3">Suggested Next Steps</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {currentReport.suggestedPrompts.map((prompt, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className="px-3 py-1.5 bg-violet-100 hover:bg-violet-200 text-violet-700 border-violet-300 cursor-default transition-colors text-xs"
+                              >
+                                {prompt}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
                   {/* Comprehensive Information - Collapsible */}
                   {currentReport.comprehensiveInfo && (
                     <Collapsible open={isComprehensiveOpen} onOpenChange={setIsComprehensiveOpen}>
-                      <Card className="p-4 border-gray-200">
+                      <Card className="p-5 border-border shadow-sm hover:shadow transition-shadow">
                         <CollapsibleTrigger asChild>
-                          <button className="flex items-center justify-between w-full text-left">
-                            <div className="flex items-center gap-2">
-                              <Eye className="w-4 h-4 text-gray-600" />
-                              <h3 className="font-semibold text-gray-900">Comprehensive Information</h3>
+                          <button className="flex items-center justify-between w-full text-left group">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                                <Eye className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                Comprehensive Information
+                              </h3>
                             </div>
                             {isComprehensiveOpen ? (
-                              <ChevronUp className="w-4 h-4 text-gray-600" />
+                              <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             ) : (
-                              <ChevronDown className="w-4 h-4 text-gray-600" />
+                              <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             )}
                           </button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-3">
-                          <p className="text-sm text-gray-700 leading-relaxed">{currentReport.comprehensiveInfo}</p>
+                        <CollapsibleContent className="mt-4">
+                          <p className="text-sm text-muted-foreground leading-relaxed pl-11">{currentReport.comprehensiveInfo}</p>
                         </CollapsibleContent>
                       </Card>
                     </Collapsible>
