@@ -239,6 +239,12 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Create a basic report from the conversation with enhanced data
+      // Get table data from the last message
+      let reportTableData = Array.isArray(lastMessage?.response) ? lastMessage.response : null;
+      if (!reportTableData && lastMessage?.content && Array.isArray(lastMessage.content)) {
+        reportTableData = parsePipeDelimitedContent(lastMessage.content);
+      }
+      
       const newReport: Omit<Report, 'id' | 'createdAt' | 'updatedAt'> = {
         title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
         description: `Report generated from prompt: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`,
@@ -248,7 +254,12 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         summary: lastMessage?.summary,
         comprehensiveInfo: lastMessage?.comprehensive_information,
         keyInsights: lastMessage?.key_insights,
-        suggestedPrompts: lastMessage?.suggested_prompts
+        suggestedPrompts: lastMessage?.suggested_prompts,
+        apiData: reportTableData ? {
+          title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+          type: 'tabular',
+          data: reportTableData
+        } : undefined
       };
 
       addReport(newReport);
