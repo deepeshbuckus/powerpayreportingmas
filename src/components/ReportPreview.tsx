@@ -1,11 +1,12 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Share2, Loader2 } from "lucide-react";
+import { Download, Eye, Share2, Loader2, Lightbulb, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useReports } from "@/contexts/ReportContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const renderReportContent = (content: string) => {
   const lines = content.split('\n');
@@ -212,6 +213,7 @@ export const ReportPreview = () => {
   const { currentReport } = useReports();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [isComprehensiveOpen, setIsComprehensiveOpen] = useState(false);
   
   // Debug logging
   console.log('ReportPreview currentReport:', currentReport);
@@ -290,6 +292,68 @@ export const ReportPreview = () => {
               {/* Report Content */}
               {currentReport.apiData ? (
                 <div className="space-y-6">
+                  {/* Summary Section */}
+                  {currentReport.summary && (
+                    <Card className="p-4 bg-blue-50/50 border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Info className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-blue-900 mb-2">Summary</h3>
+                          <p className="text-sm text-blue-800 leading-relaxed">{currentReport.summary}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Key Insights Section */}
+                  {currentReport.keyInsights && currentReport.keyInsights.length > 0 && (
+                    <Card className="p-4 bg-amber-50/50 border-amber-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Lightbulb className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-amber-900 mb-3">Key Insights</h3>
+                          <ul className="space-y-2">
+                            {currentReport.keyInsights.map((insight, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-sm text-amber-800">
+                                <span className="w-1.5 h-1.5 bg-amber-600 rounded-full mt-1.5 flex-shrink-0"></span>
+                                <span>{insight}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Comprehensive Information - Collapsible */}
+                  {currentReport.comprehensiveInfo && (
+                    <Collapsible open={isComprehensiveOpen} onOpenChange={setIsComprehensiveOpen}>
+                      <Card className="p-4 border-gray-200">
+                        <CollapsibleTrigger asChild>
+                          <button className="flex items-center justify-between w-full text-left">
+                            <div className="flex items-center gap-2">
+                              <Eye className="w-4 h-4 text-gray-600" />
+                              <h3 className="font-semibold text-gray-900">Comprehensive Information</h3>
+                            </div>
+                            {isComprehensiveOpen ? (
+                              <ChevronUp className="w-4 h-4 text-gray-600" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-gray-600" />
+                            )}
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-3">
+                          <p className="text-sm text-gray-700 leading-relaxed">{currentReport.comprehensiveInfo}</p>
+                        </CollapsibleContent>
+                      </Card>
+                    </Collapsible>
+                  )}
+
+                  {/* Data Table */}
                   {renderApiDataTable(currentReport.apiData)}
                   
                   {/* Download Section */}

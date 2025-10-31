@@ -14,6 +14,10 @@ interface Message {
   sender: 'user' | 'assistant';
   timestamp: Date;
   tableData?: string[][] | null;
+  summary?: string;
+  comprehensiveInfo?: string;
+  keyInsights?: string[];
+  suggestedPrompts?: string[];
 }
 
 const promptingTips = [
@@ -134,10 +138,14 @@ export const ChatInterface = () => {
           
           return {
             id: msg.id || `loaded-${index}`,
-            content: msg.prompt || msg.content || msg.message || 'Response generated',
+            content: msg.summary || msg.prompt || msg.content || msg.message || 'Response generated',
             sender: isUserMessage ? 'user' : 'assistant',
             timestamp: new Date(msg.timestamp || Date.now()),
-            tableData: msg.response || msg.tableData || null
+            tableData: msg.response || msg.tableData || null,
+            summary: msg.summary,
+            comprehensiveInfo: msg.comprehensiveInfo,
+            keyInsights: msg.keyInsights,
+            suggestedPrompts: msg.suggestedPrompts
           };
         });
         
@@ -248,10 +256,14 @@ export const ChatInterface = () => {
             // Create the assistant response message
             const assistantResponse: Message = {
               id: latestAssistantMsg.message_id || thinkingMessage.id,
-              content: latestAssistantMsg.prompt || latestAssistantMsg.content || 'Here are your results:',
+              content: latestAssistantMsg.summary || latestAssistantMsg.prompt || latestAssistantMsg.content || 'Here are your results:',
               sender: 'assistant',
               timestamp: new Date(),
-              tableData: latestAssistantMsg.response || latestAssistantMsg.tableData || null
+              tableData: latestAssistantMsg.response || latestAssistantMsg.tableData || null,
+              summary: latestAssistantMsg.summary,
+              comprehensiveInfo: latestAssistantMsg.comprehensiveInfo,
+              keyInsights: latestAssistantMsg.keyInsights,
+              suggestedPrompts: latestAssistantMsg.suggestedPrompts
             };
             
             // Replace the thinking message with the actual response
@@ -303,40 +315,59 @@ export const ChatInterface = () => {
 
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-4 py-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex gap-3 max-w-full",
-                message.sender === 'user' ? "justify-end" : "justify-start"
-              )}
-            >
-              {message.sender === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-primary-foreground" />
-                </div>
-              )}
-              
+          {messages.map((message, index) => (
+            <div key={message.id}>
               <div
                 className={cn(
-                  "px-4 py-3 rounded-xl max-w-[85%] shadow-chat transition-smooth",
-                  message.sender === 'user'
-                    ? "bg-primary text-primary-foreground ml-auto"
-                    : "bg-card border"
+                  "flex gap-3 max-w-full",
+                  message.sender === 'user' ? "justify-end" : "justify-start"
                 )}
               >
-                <p className="text-sm leading-relaxed">{message.content}</p>
-                <span className={cn(
-                  "text-xs opacity-70 mt-1 block",
-                  message.sender === 'user' ? "text-primary-foreground/70" : "text-muted-foreground"
-                )}>
-                  {message.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
+                {message.sender === 'assistant' && (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                )}
+                
+                <div
+                  className={cn(
+                    "px-4 py-3 rounded-xl max-w-[85%] shadow-chat transition-smooth",
+                    message.sender === 'user'
+                      ? "bg-primary text-primary-foreground ml-auto"
+                      : "bg-card border"
+                  )}
+                >
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <span className={cn(
+                    "text-xs opacity-70 mt-1 block",
+                    message.sender === 'user' ? "text-primary-foreground/70" : "text-muted-foreground"
+                  )}>
+                    {message.timestamp.toLocaleTimeString()}
+                  </span>
+                </div>
 
-              {message.sender === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-secondary-foreground" />
+                {message.sender === 'user' && (
+                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-secondary-foreground" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Suggested Prompts */}
+              {message.sender === 'assistant' && message.suggestedPrompts && message.suggestedPrompts.length > 0 && index === messages.length - 1 && (
+                <div className="ml-11 mt-2 space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">Suggested follow-ups:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {message.suggestedPrompts.map((prompt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setInputValue(prompt)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-smooth"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

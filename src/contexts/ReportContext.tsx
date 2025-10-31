@@ -12,10 +12,14 @@ export interface Report {
   status: 'draft' | 'published' | 'archived';
   type: string;
   attachmentId?: string;
+  summary?: string;
+  comprehensiveInfo?: string;
+  keyInsights?: string[];
+  suggestedPrompts?: string[];
   apiData?: {
     title: string;
     type: string;
-    data: Record<string, any>[];
+    data: Record<string, any>[] | string[][];
   };
 }
 
@@ -207,28 +211,44 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
 
       // Store the conversation in localStorage so ChatInterface can pick it up
       if (response.messages && response.messages.length > 0) {
-        const transformedMessages = response.messages.map((msg, index) => ({
-          id: msg.message_id || `msg-${index}`,
-          message_id: msg.message_id,
-          content: msg.prompt || '',
-          role: msg.role || (msg.prompt ? 'user' : 'assistant'),
-          prompt: msg.prompt,
-          response: Array.isArray(msg.response) ? msg.response : null,
-          tableData: Array.isArray(msg.response) ? msg.response : null,
-          timestamp: new Date().toISOString()
-        }));
+        const transformedMessages = response.messages.map((msg, index) => {
+          // Parse pipe-delimited content if present
+          let tableData = Array.isArray(msg.response) ? msg.response : null;
+          if (!tableData && msg.content && Array.isArray(msg.content)) {
+            tableData = parsePipeDelimitedContent(msg.content);
+          }
+          
+          return {
+            id: msg.message_id || `msg-${index}`,
+            message_id: msg.message_id,
+            content: msg.prompt || msg.summary || '',
+            role: msg.role || (msg.prompt ? 'user' : 'assistant'),
+            prompt: msg.prompt,
+            response: tableData,
+            tableData: tableData,
+            summary: msg.summary,
+            comprehensiveInfo: msg.comprehensive_information,
+            keyInsights: msg.key_insights,
+            suggestedPrompts: msg.suggested_prompts,
+            timestamp: new Date().toISOString()
+          };
+        });
         
         localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
         localStorage.setItem('loadedConversationId', reportId);
       }
 
-      // Create a basic report from the conversation
+      // Create a basic report from the conversation with enhanced data
       const newReport: Omit<Report, 'id' | 'createdAt' | 'updatedAt'> = {
         title: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
         description: `Report generated from prompt: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`,
         content: generateMockReportContent(content, 'General'),
         status: 'draft',
         type: 'General',
+        summary: lastMessage?.summary,
+        comprehensiveInfo: lastMessage?.comprehensive_information,
+        keyInsights: lastMessage?.key_insights,
+        suggestedPrompts: lastMessage?.suggested_prompts
       };
 
       addReport(newReport);
@@ -321,16 +341,28 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
       const allMessages = response.messages;
       
       // Update chat history with all messages in localStorage
-      const transformedMessages = allMessages.map((msg, index) => ({
-        id: msg.message_id || `msg-${index}`,
-        message_id: msg.message_id,
-        content: msg.prompt || '',
-        role: msg.role || 'assistant',
-        prompt: msg.prompt,
-        response: Array.isArray(msg.response) ? msg.response : null,
-        tableData: Array.isArray(msg.response) ? msg.response : null,
-        timestamp: new Date().toISOString()
-      }));
+      const transformedMessages = allMessages.map((msg, index) => {
+        // Parse pipe-delimited content if present
+        let tableData = Array.isArray(msg.response) ? msg.response : null;
+        if (!tableData && msg.content && Array.isArray(msg.content)) {
+          tableData = parsePipeDelimitedContent(msg.content);
+        }
+        
+        return {
+          id: msg.message_id || `msg-${index}`,
+          message_id: msg.message_id,
+          content: msg.prompt || msg.summary || '',
+          role: msg.role || 'assistant',
+          prompt: msg.prompt,
+          response: tableData,
+          tableData: tableData,
+          summary: msg.summary,
+          comprehensiveInfo: msg.comprehensive_information,
+          keyInsights: msg.key_insights,
+          suggestedPrompts: msg.suggested_prompts,
+          timestamp: new Date().toISOString()
+        };
+      });
       
       // Store all messages in localStorage (overwrite history)
       localStorage.setItem('loadedChatHistory', JSON.stringify(transformedMessages));
@@ -347,8 +379,14 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
           setSessionData(newMessageId, conversationId);
         }
 
-        // If the latest message has table data (response array), update the preview
-        if (latestMessage.response && Array.isArray(latestMessage.response)) {
+        // Parse table data from either response or content
+        let tableData = Array.isArray(latestMessage.response) ? latestMessage.response : null;
+        if (!tableData && latestMessage.content && Array.isArray(latestMessage.content)) {
+          tableData = parsePipeDelimitedContent(latestMessage.content);
+        }
+
+        // If the latest message has table data, update the preview
+        if (tableData) {
           const updatedReport = {
             id: conversationId,
             title: 'Query Results',
@@ -358,10 +396,14 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
             type: 'data-report',
             createdAt: currentReport?.createdAt || new Date(),
             updatedAt: new Date(),
+            summary: latestMessage.summary,
+            comprehensiveInfo: latestMessage.comprehensive_information,
+            keyInsights: latestMessage.key_insights,
+            suggestedPrompts: latestMessage.suggested_prompts,
             apiData: {
               title: 'Query Results',
               type: 'Query Results',
-              data: latestMessage.response
+              data: tableData
             }
           };
           setCurrentReport(updatedReport);
@@ -369,6 +411,10 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
           if (currentReport?.id) {
             updateReport(currentReport.id, { 
               apiData: updatedReport.apiData,
+              summary: latestMessage.summary,
+              comprehensiveInfo: latestMessage.comprehensive_information,
+              keyInsights: latestMessage.key_insights,
+              suggestedPrompts: latestMessage.suggested_prompts,
               updatedAt: new Date()
             });
           }
@@ -378,12 +424,16 @@ export const ReportProvider = ({ children }: { children: ReactNode }) => {
         const messageForChat = {
           id: latestMessage.message_id || `msg-${Date.now()}`,
           message_id: latestMessage.message_id,
-          content: latestMessage.prompt || '',
+          content: latestMessage.prompt || latestMessage.summary || '',
           sender: 'assistant',
           role: 'assistant',
           prompt: latestMessage.prompt,
-          response: Array.isArray(latestMessage.response) ? latestMessage.response : null,
-          tableData: Array.isArray(latestMessage.response) ? latestMessage.response : null,
+          response: tableData,
+          tableData: tableData,
+          summary: latestMessage.summary,
+          comprehensiveInfo: latestMessage.comprehensive_information,
+          keyInsights: latestMessage.key_insights,
+          suggestedPrompts: latestMessage.suggested_prompts,
           timestamp: new Date().toISOString()
         };
         
@@ -488,6 +538,11 @@ The following table shows the complete dataset:
 
 ${generateTableFromApiData(apiData.data)}
   `;
+};
+
+// Utility function to parse pipe-delimited content
+const parsePipeDelimitedContent = (content: string[]): string[][] => {
+  return content.map(line => line.split('|').map(cell => cell.trim()));
 };
 
 const generateTableFromApiData = (data: Record<string, any>[]): string => {

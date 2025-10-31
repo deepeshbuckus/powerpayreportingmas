@@ -24,6 +24,12 @@ export interface ConversationMessage {
   prompt?: string;
   response?: string[][];
   role?: string;
+  // New enhanced format
+  content?: string[];
+  summary?: string;
+  comprehensive_information?: string;
+  key_insights?: string[];
+  suggested_prompts?: string[];
 }
 
 export interface ConversationResponse {
